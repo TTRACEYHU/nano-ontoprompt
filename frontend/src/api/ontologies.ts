@@ -1,0 +1,135 @@
+import { apiClient, apiClientV2 } from './client'
+import type { OntologyListItem, OntologyDetail, Entity, LogicRule, Action, UploadedFile, Prompt, ModelConfig, EntityTemplate, ObjectType, ObjectInstance, OntologyInterface, LinkTypeItem, LinkItem } from '@/types/ontology'
+
+export const ontologyApi = {
+  list: (params?: { name?: string; page?: number; page_size?: number }) =>
+    apiClient.get<{ items: OntologyListItem[]; total: number; page: number; page_size: number }>('/ontologies', { params }),
+  create: (body: { name: string; domain: string; description?: string; build_mode?: string }) =>
+    apiClient.post<OntologyDetail>('/ontologies', body),
+  get: (id: string) => apiClient.get<OntologyDetail>(`/ontologies/${id}`),
+  update: (id: string, body: Partial<OntologyDetail>) => apiClient.put<OntologyDetail>(`/ontologies/${id}`, body),
+  delete: (id: string) => apiClient.delete(`/ontologies/${id}`),
+  batchDelete: (ids: string[]) => apiClient.delete('/ontologies/batch', { data: { ids } }),
+
+  // Files
+  listFiles: (oid: string) => apiClient.get<UploadedFile[]>(`/ontologies/${oid}/files`),
+  deleteFile: (oid: string, fid: string) => apiClient.delete(`/ontologies/${oid}/files/${fid}`),
+
+  // Graph
+  getGraph: (oid: string) => apiClient.get<{ nodes: object[]; edges: object[]; meta: object }>(`/ontologies/${oid}/graph`),
+  createRelation: (oid: string, body: object) => apiClient.post(`/ontologies/${oid}/graph/relations`, body),
+  deleteRelation: (oid: string, rid: string) => apiClient.delete(`/ontologies/${oid}/graph/relations/${rid}`),
+
+  // Entities
+  listEntities: (oid: string) => apiClient.get<Entity[]>(`/ontologies/${oid}/entities`),
+  createEntity: (oid: string, body: Partial<Entity>) => apiClient.post<Entity>(`/ontologies/${oid}/entities`, body),
+  updateEntity: (oid: string, eid: string, body: Partial<Entity>) => apiClient.put<Entity>(`/ontologies/${oid}/entities/${eid}`, body),
+  deleteEntity: (oid: string, eid: string) => apiClient.delete(`/ontologies/${oid}/entities/${eid}`),
+  getEntityRelated: (oid: string, eid: string) =>
+    apiClient.get<{ logic: any[]; actions: any[] }>(`/ontologies/${oid}/entities/${eid}/related`),
+
+  // Logic
+  listLogic: (oid: string) => apiClient.get<LogicRule[]>(`/ontologies/${oid}/logic`),
+  createLogic: (oid: string, body: Partial<LogicRule>) => apiClient.post<LogicRule>(`/ontologies/${oid}/logic`, body),
+  updateLogic: (oid: string, lid: string, body: Partial<LogicRule>) => apiClient.put<LogicRule>(`/ontologies/${oid}/logic/${lid}`, body),
+  deleteLogic: (oid: string, lid: string) => apiClient.delete(`/ontologies/${oid}/logic/${lid}`),
+
+  // Actions
+  listActions: (oid: string) => apiClient.get<Action[]>(`/ontologies/${oid}/actions`),
+  createAction: (oid: string, body: Partial<Action>) => apiClient.post<Action>(`/ontologies/${oid}/actions`, body),
+  updateAction: (oid: string, aid: string, body: Partial<Action>) => apiClient.put<Action>(`/ontologies/${oid}/actions/${aid}`, body),
+  deleteAction: (oid: string, aid: string) => apiClient.delete(`/ontologies/${oid}/actions/${aid}`),
+
+  // Extraction
+  startExtraction: (oid: string, body: { prompt_id: string; model_id: string; model_name: string; constraints?: string[] }) =>
+    apiClient.post<{ task_id: string }>(`/ontologies/${oid}/execute`, body),
+  getExtractionStatus: (oid: string, task_id: string) =>
+    apiClient.get(`/ontologies/${oid}/execute/status?task_id=${task_id}`),
+
+  // Templates
+  listTemplates: (oid: string) => apiClient.get<EntityTemplate[]>(`/ontologies/${oid}/templates`),
+  createTemplate: (oid: string, body: Partial<EntityTemplate>) => apiClient.post<EntityTemplate>(`/ontologies/${oid}/templates`, body),
+  updateTemplate: (oid: string, tid: string, body: Partial<EntityTemplate>) => apiClient.put<EntityTemplate>(`/ontologies/${oid}/templates/${tid}`, body),
+  deleteTemplate: (oid: string, tid: string) => apiClient.delete(`/ontologies/${oid}/templates/${tid}`),
+
+  // Export
+  exportUrl: (oid: string, format: string) => `/api/v1/ontologies/${oid}/export?format=${format}`,
+
+  // Phase 2: ObjectType / ObjectInstance / Interface / LinkType / Link
+  listObjectTypes: (oid: string) => apiClientV2.get<ObjectType[]>(`/ontologies/${oid}/object-types`),
+  createObjectType: (oid: string, body: Partial<ObjectType>) => apiClientV2.post<ObjectType>(`/ontologies/${oid}/object-types`, body),
+  updateObjectType: (oid: string, tid: string, body: Partial<ObjectType>) => apiClientV2.put<ObjectType>(`/ontologies/${oid}/object-types/${tid}`, body),
+  deleteObjectType: (oid: string, tid: string) => apiClientV2.delete(`/ontologies/${oid}/object-types/${tid}`),
+  listInstances: (oid: string, objectTypeId?: string) =>
+    apiClientV2.get<ObjectInstance[]>(`/ontologies/${oid}/object-instances${objectTypeId ? `?object_type_id=${objectTypeId}` : ''}`),
+  createInstance: (oid: string, body: Partial<ObjectInstance>) => apiClientV2.post<ObjectInstance>(`/ontologies/${oid}/object-instances`, body),
+  updateInstance: (oid: string, iid: string, body: Partial<ObjectInstance>) => apiClientV2.put<ObjectInstance>(`/ontologies/${oid}/object-instances/${iid}`, body),
+  deleteInstance: (oid: string, iid: string) => apiClientV2.delete(`/ontologies/${oid}/object-instances/${iid}`),
+
+  // Object Rules
+  listRules: (oid: string, params?: { object_type_id?: string; object_instance_id?: string }) =>
+    apiClientV2.get<{data: any[]}>(`/ontologies/${oid}/rules`, params),
+  createRule: (oid: string, body: any) => apiClientV2.post(`/ontologies/${oid}/rules`, body),
+  updateRule: (oid: string, rid: string, body: any) => apiClientV2.put(`/ontologies/${oid}/rules/${rid}`, body),
+  deleteRule: (oid: string, rid: string) => apiClientV2.delete(`/ontologies/${oid}/rules/${rid}`),
+
+  // Object Actions (Phase 2)
+  listActionsV2: (oid: string, params?: { object_type_id?: string; object_instance_id?: string; object_rule_id?: string }) =>
+    apiClientV2.get<{data: any[]}>(`/ontologies/${oid}/actions-v2`, params),
+  createActionV2: (oid: string, body: any) => apiClientV2.post(`/ontologies/${oid}/actions-v2`, body),
+  updateActionV2: (oid: string, aid: string, body: any) => apiClientV2.put(`/ontologies/${oid}/actions-v2/${aid}`, body),
+  deleteActionV2: (oid: string, aid: string) => apiClientV2.delete(`/ontologies/${oid}/actions-v2/${aid}`),
+  listInterfaces: (oid: string) => apiClientV2.get<OntologyInterface[]>(`/ontologies/${oid}/interfaces`),
+  createInterface: (oid: string, body: any) => apiClientV2.post(`/ontologies/${oid}/interfaces`, body),
+  updateInterface: (oid: string, iid: string, body: any) => apiClientV2.put(`/ontologies/${oid}/interfaces/${iid}`, body),
+  deleteInterface: (oid: string, iid: string) => apiClientV2.delete(`/ontologies/${oid}/interfaces/${iid}`),
+  listLinkTypes: (oid: string) => apiClientV2.get<LinkTypeItem[]>(`/ontologies/${oid}/link-types`),
+  createLinkType: (oid: string, body: any) => apiClientV2.post(`/ontologies/${oid}/link-types`, body),
+  updateLinkType: (oid: string, lid: string, body: any) => apiClientV2.put(`/ontologies/${oid}/link-types/${lid}`, body),
+  deleteLinkType: (oid: string, lid: string) => apiClientV2.delete(`/ontologies/${oid}/link-types/${lid}`),
+  listLinks: (oid: string) => apiClientV2.get<LinkItem[]>(`/ontologies/${oid}/links`),
+  deleteLink: (oid: string, lid: string) => apiClientV2.delete(`/ontologies/${oid}/links/${lid}`),
+  triggerRules: (oid: string, instId: string) => apiClientV2.post(`/ontologies/${oid}/instances/${instId}/trigger-rules`),
+  confirmLinks: (oid: string, links: any[]) => apiClientV2.post(`/ontologies/${oid}/confirm-links`, { links }),
+  listDataSources: (oid: string) => apiClientV2.get(`/ontologies/${oid}/data-sources`),
+  createDataSource: (oid: string, body: any) => apiClientV2.post(`/ontologies/${oid}/data-sources`, body),
+  deleteDataSource: (oid: string, sid: string) => apiClientV2.delete(`/ontologies/${oid}/data-sources/${sid}`),
+}
+
+export const promptApi = {
+  list: (domain?: string) => apiClient.get<Prompt[]>('/prompts', { params: domain ? { domain } : {} }),
+  getTemplates: () => apiClient.get<{ name: string; domain: string; content: string }[]>('/prompts/templates'),
+  create: (body: Partial<Prompt>) => apiClient.post<Prompt>('/prompts', body),
+  get: (id: string) => apiClient.get<Prompt>(`/prompts/${id}`),
+  update: (id: string, body: Partial<Prompt>) => apiClient.put<Prompt>(`/prompts/${id}`, body),
+  delete: (id: string) => apiClient.delete(`/prompts/${id}`),
+  generateTemplate: (domain: string) =>
+    apiClient.post<{ domain: string; content: string }>(`/prompts/generate-template?domain=${encodeURIComponent(domain)}&style=ontology_extraction`, {}),
+}
+
+export const modelApi = {
+  list: () => apiClient.get<ModelConfig[]>('/models'),
+  create: (body: Partial<ModelConfig> & { api_key?: string }) => apiClient.post<ModelConfig>('/models', body),
+  get: (id: string) => apiClient.get<ModelConfig>(`/models/${id}`),
+  update: (id: string, body: Partial<ModelConfig> & { api_key?: string }) => apiClient.put<ModelConfig>(`/models/${id}`, body),
+  delete: (id: string) => apiClient.delete(`/models/${id}`),
+  test: (id: string) => apiClient.post(`/models/${id}/test`),
+}
+
+export const settingsApi = {
+  getRules: () => apiClient.get<{ rule_key: string; rule_value: string; rule_label_cn: string; rule_label_en: string; editable: boolean }[]>('/settings/rules'),
+  updateRules: (rules: { rule_key: string; rule_value: string }[]) => apiClient.put('/settings/rules', rules),
+  listSnapshots: () => apiClient.get<{ name: string; size: number; created_at: string; engine: string }[]>('/settings/snapshots'),
+  createSnapshot: (label?: string) => apiClient.post<{ name: string; size: number; created_at: string; engine: string }>('/settings/snapshots', { label: label || null }),
+  restoreSnapshot: (name: string) => apiClient.post<{ name: string; size: number; created_at: string; engine: string }>('/settings/snapshots/restore', { name }),
+  deleteSnapshot: (name: string) => apiClient.delete('/settings/snapshots', { data: { name } }),
+}
+
+export const usersApi = {
+  list: () => apiClient.get<{ id: string; username: string; email: string; role: string; created_at: string }[]>('/users'),
+  create: (body: { username: string; email: string; password: string; role: string }) =>
+    apiClient.post('/users', body),
+  update: (id: string, body: { username?: string; email?: string; password?: string; role?: string }) =>
+    apiClient.put(`/users/${id}`, body),
+  delete: (id: string) => apiClient.delete(`/users/${id}`),
+}
